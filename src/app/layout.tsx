@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
-import { TopContactStrip } from '@/components/layout/TopContactStrip';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { MobileBottomBar } from '@/components/layout/MobileBottomBar';
@@ -55,7 +54,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[#F8FAF8] text-[#202A29]">
-        <TopContactStrip />
         <Header />
         <main className="flex-1 pb-16 sm:pb-0">{children}</main>
         <Footer />

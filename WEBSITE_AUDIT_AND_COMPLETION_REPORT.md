@@ -211,4 +211,55 @@ All routes compiled and returned **HTTP 200 OK**:
 - `src/app/admin/page.tsx` — Enforced server-side production security checks for demo mode and loaded hero slides and articles.
 - `src/app/admin/AdminDashboardClient.tsx` — Added Hero Slideshow tab, Healthy Living tab, Logo management, and review consent workflow.
 - `src/app/admin/login/page.tsx` — Updated with `ClinicLogo` branding.
-- `src/app/globals.css` — Added global horizontal overflow protection (`overflow-x: hidden; max-width: 100%`).
+- `src/app/globals.css` — Replaced `overflow-x: hidden` with `overflow-x: clip` to fix `position: sticky` and added `scroll-padding-top: 6rem`.
+- `src/app/layout.tsx` — Unified header by removing redundant non-sticky `<TopContactStrip />`.
+- `scripts/test-navbar-scroll-fix.mjs` — Automated 8-viewport Puppeteer test suite verifying navbar pinning, scroll stability, dropdown anchoring, and mobile drawer scroll lock.
+
+---
+
+## 7. Navbar Scroll Stability & Pinning Bug Fix Resolution
+
+### Problem Statement
+When scrolling upward or downward, the navigation bar appeared to slide, lag, or move instead of remaining firmly pinned at the top of the viewport.
+
+### Diagnostic & Root Cause Analysis
+Using automated headless browser diagnosis (`scripts/diagnose-scroll.mjs`), three interconnected root causes were identified:
+1. **`overflow-x: hidden` on `html, body`**: In `src/app/globals.css`, setting `overflow-x: hidden` caused browsers to compute `overflow-y: auto`, establishing a nested scroll container on `html`/`body`. Under CSS specifications, `position: sticky` elements stick to their nearest scrolling ancestor rather than the viewport. As a result, when the window scrolled to 500px, `header.getBoundingClientRect().top` reached `-467px` on desktop and `-500px` on mobile, causing the header to scroll completely offscreen.
+2. **TopContactStrip Non-Sticky Offset Shift**: `<TopContactStrip />` was rendered in `src/app/layout.tsx` above `<Header />` as a non-sticky element. At `scrollY: 0`, the header sat at `top: 33px`. Scrolling down caused the top strip to scroll off, shifting the header from `33px` up to `0px`. Scrolling back up reversed the shift, creating a visible 33px jumping/sliding sensation.
+3. **CSS `transition-all` on `<header>`**: In `src/components/layout/Header.tsx`, the header container included `transition-all duration-150`. Any layout recalculation triggered CSS transition interpolation, resulting in an animated sliding lag during user scrolling.
+
+### Implemented Fixes
+1. **W3C Compliant Overflow Handling (`src/app/globals.css`):**
+   - Replaced `overflow-x: hidden` with `overflow-x: clip` on `body`.
+   - Per W3C CSS Overflow Module Level 3, `overflow: clip` strictly clips horizontal overflow without establishing a scroll container, preserving viewport-relative `position: sticky`.
+   - Added `scroll-padding-top: 6rem` on `html` so anchor links do not scroll underneath the pinned navbar.
+2. **Unified Pinned Header Container (`src/components/layout/Header.tsx` & `src/app/layout.tsx`):**
+   - Integrated `<TopContactStrip />` directly inside `<header>` above the primary navigation bar.
+   - Removed the separate `<TopContactStrip />` call in `src/app/layout.tsx`.
+   - Removed `transition-all` from `<header>`. The header now uses `sticky top-0 z-30 bg-white border-b border-[#E3E8E5] shadow-xs`.
+   - Result: `header.getBoundingClientRect().top === 0` at all times (`scrollY = 0` to `5000px`). The logo and navbar elements maintain exact pixel stability during upward and downward scrolling.
+3. **Preserved Interactive Features:**
+   - React portal drawer (`#mobile-navigation`), Escape-to-close, backdrop click dismiss, and body scroll lock preserved.
+   - "More ▼" desktop dropdown anchors cleanly beneath the pinned header at any scroll depth.
+
+### Automated Browser Verification Across 8 Viewports
+Tested with headless Chrome via `scripts/test-navbar-scroll-fix.mjs`:
+
+| Viewport Name | Resolution | Scroll Down Test (100, 300, 600, 1200px) | Scroll Up Test (400, 150, 0px) | Header Top | Horizontal Overflow | Result |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `mobile-320` | 320 × 600 px | Header pinned, Logo steady | Header pinned, Logo steady | `0px` | `0px` (None) | **PASS** |
+| `mobile-375` | 375 × 812 px | Header pinned, Logo steady | Header pinned, Logo steady | `0px` | `0px` (None) | **PASS** |
+| `mobile-390` | 390 × 844 px | Header pinned, Logo steady | Header pinned, Logo steady | `0px` | `0px` (None) | **PASS** |
+| `mobile-412` | 412 × 915 px | Header pinned, Logo steady | Header pinned, Logo steady | `0px` | `0px` (None) | **PASS** |
+| `tablet-768` | 768 × 1024 px | Header pinned, Logo steady | Header pinned, Logo steady | `0px` | `0px` (None) | **PASS** |
+| `laptop-1024`| 1024 × 768 px | Header pinned, Logo steady | Header pinned, Logo steady | `0px` | `0px` (None) | **PASS** |
+| `desktop-1280`| 1280 × 800 px | Header pinned, Logo steady | Header pinned, Logo steady | `0px` | `0px` (None) | **PASS** |
+| `desktop-1440`| 1440 × 900 px | Header pinned, Logo steady | Header pinned, Logo steady | `0px` | `0px` (None) | **PASS** |
+
+### Scrolled Interactive Component Tests
+1. **"More ▼" Dropdown While Scrolled (`1280px` at `scrollY: 500px`):**
+   - Opened: `Visible = true`, anchored at `top: 99px`, `height: 620px`.
+   - Escape key: Successfully dismissed dropdown and restored focus (**PASS**).
+2. **Mobile Drawer While Scrolled (`375px` at `scrollY: 500px`):**
+   - Opened: Covers `100%` viewport (`top: 0px`, `height: 812px`), active scroll lock (`body.overflow = "hidden"`).
+   - Close button: Closed drawer and cleanly restored body overflow (**PASS**).

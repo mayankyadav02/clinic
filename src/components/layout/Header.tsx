@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { CLINIC_CONFIG, getTelUrl, getWhatsAppUrl } from '@/lib/config/clinic';
 import { ClinicLogo } from '@/components/common/ClinicLogo';
+import { TopContactStrip } from './TopContactStrip';
 
 // Primary navbar links (strictly 5 top-level items)
 export const PRIMARY_NAV_ITEMS = [
@@ -181,7 +182,8 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 bg-white border-b border-[#E3E8E5] transition-all">
+      <header className="sticky top-0 z-30 bg-white border-b border-[#E3E8E5] shadow-xs">
+        <TopContactStrip />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20 gap-2 sm:gap-4">
             {/* Brand Logo & Name */}

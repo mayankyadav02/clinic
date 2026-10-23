@@ -23,22 +23,19 @@
   --charcoal: #202A29;
 }
 
-html, body {
-  overflow-x: hidden;
-  max-width: 100%;
+/* Custom scrollbar and smooth scroll */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 6rem;
 }
 
 body {
+  overflow-x: clip;
   background-color: var(--background);
   color: var(--foreground);
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-/* Custom scrollbar and smooth scroll */
-html {
-  scroll-behavior: smooth;
 }
 
 @media (prefers-reduced-motion: reduce) {
